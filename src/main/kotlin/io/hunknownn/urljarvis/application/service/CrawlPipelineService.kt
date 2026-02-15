@@ -72,8 +72,10 @@ class CrawlPipelineService(
                 val embeddings: List<FloatArray>
                 val embedTime = measureTimeMillis {
                     val prefixedChunks = textChunks.map { "passage: $it" }
-                    embeddings = prefixedChunks.chunked(10).flatMap { batch ->
-                        embeddingClient.embedBatch(batch)
+                    val batches = prefixedChunks.chunked(10)
+                    val totalBatches = batches.size
+                    embeddings = batches.flatMapIndexed { index, batch ->
+                        embeddingClient.embedBatch(batch, batchIndex = index + 1, totalBatches = totalBatches)
                     }
                 }
                 log.info("[임베딩] {}ms - {}건 ({}차원)", embedTime, embeddings.size, embeddings.firstOrNull()?.size ?: 0)
