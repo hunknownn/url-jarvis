@@ -21,6 +21,10 @@ class UrlPersistenceAdapter(
         return UrlMapper.toDomain(saved)
     }
 
+    override fun findByUserIdAndUrl(userId: Long, url: String): Url? =
+        urlJpaRepository.findByUserIdAndUrl(userId, url)
+            ?.let { UrlMapper.toDomain(it) }
+
     override fun findById(id: Long): Url? =
         urlJpaRepository.findById(id)
             .map { UrlMapper.toDomain(it) }

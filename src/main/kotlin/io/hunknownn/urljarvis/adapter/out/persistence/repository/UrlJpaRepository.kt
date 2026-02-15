@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query
 interface UrlJpaRepository : JpaRepository<UrlJpaEntity, Long> {
     fun findByUserId(userId: Long, pageable: Pageable): Page<UrlJpaEntity>
     fun findByIdAndUserId(id: Long, userId: Long): UrlJpaEntity?
+    fun findByUserIdAndUrl(userId: Long, url: String): UrlJpaEntity?
 
     @Modifying
     @Query("UPDATE UrlJpaEntity u SET u.status = :status, u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = :id")

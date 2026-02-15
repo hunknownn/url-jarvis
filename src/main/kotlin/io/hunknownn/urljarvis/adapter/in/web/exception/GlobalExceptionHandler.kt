@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 class UrlNotFoundException(val urlId: Long) : RuntimeException("URL not found: $urlId")
+class UrlDuplicateException(val existingUrlId: Long) : RuntimeException("이미 등록된 URL입니다 (id: $existingUrlId)")
 class UnauthorizedException(message: String = "Unauthorized") : RuntimeException(message)
 
 @RestControllerAdvice
@@ -19,6 +20,11 @@ class GlobalExceptionHandler {
     fun handleUrlNotFound(e: UrlNotFoundException): ResponseEntity<ApiResponse<Nothing>> =
         ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(ApiResponse.error(e.message ?: "URL not found"))
+
+    @ExceptionHandler(UrlDuplicateException::class)
+    fun handleUrlDuplicate(e: UrlDuplicateException): ResponseEntity<ApiResponse<Map<String, Long>>> =
+        ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiResponse(success = false, data = mapOf("existingUrlId" to e.existingUrlId), error = e.message))
 
     @ExceptionHandler(UnauthorizedException::class)
     fun handleUnauthorized(e: UnauthorizedException): ResponseEntity<ApiResponse<Nothing>> =

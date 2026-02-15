@@ -8,6 +8,7 @@ import io.hunknownn.urljarvis.application.port.out.persistence.UrlChunkRepositor
 import io.hunknownn.urljarvis.application.port.out.persistence.UrlRepository
 import io.hunknownn.urljarvis.domain.url.CrawlStatus
 import io.hunknownn.urljarvis.domain.url.Url
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -21,8 +22,15 @@ class UrlService(
     private val crawlEventPublisher: CrawlEventPublisher
 ) : RegisterUrlUseCase, ManageUrlUseCase {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @Transactional
     override fun register(userId: Long, url: String): Url {
+        val existing = urlRepository.findByUserIdAndUrl(userId, url)
+        if (existing != null) {
+            throw io.hunknownn.urljarvis.adapter.`in`.web.exception.UrlDuplicateException(existing.id)
+        }
+
         val domain = URI.create(url).host ?: throw IllegalArgumentException("Invalid URL: $url")
 
         val saved = urlRepository.save(
@@ -30,6 +38,7 @@ class UrlService(
         )
 
         crawlEventPublisher.publishCrawlRequested(saved.id)
+        log.info("URL 등록: id={}, url={}, domain={}", saved.id, url, domain)
         return saved
     }
 
@@ -46,6 +55,7 @@ class UrlService(
             ?: throw UrlNotFoundException(urlId)
         urlChunkRepository.deleteByUrlId(url.id)
         urlRepository.deleteById(url.id)
+        log.info("URL 삭제: id={}, url={}", url.id, url.url)
     }
 
     @Transactional
@@ -55,6 +65,7 @@ class UrlService(
         urlChunkRepository.deleteByUrlId(url.id)
         urlRepository.updateStatus(url.id, CrawlStatus.PENDING)
         crawlEventPublisher.publishCrawlRequested(url.id)
+        log.info("URL 재크롤링 요청: id={}, url={}", url.id, url.url)
         return url.copy(status = CrawlStatus.PENDING)
     }
 }
