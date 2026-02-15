@@ -1,6 +1,8 @@
 spring:
   application:
     name: url-jarvis
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
     url: jdbc:postgresql://localhost:5433/urljarvis
