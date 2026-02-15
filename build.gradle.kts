@@ -46,6 +46,9 @@ dependencies {
     // Validation
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
+    // Actuator (헬스체크)
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
     // pgvector
     implementation("com.pgvector:pgvector:0.1.6")
 

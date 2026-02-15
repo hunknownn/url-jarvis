@@ -5,7 +5,7 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/urljarvis
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:urljarvis}
     username: ${DB_USERNAME:urljarvis}
     password: ${DB_PASSWORD:urljarvis}
     driver-class-name: org.postgresql.Driver
