@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Mono
+import reactor.util.retry.Retry
+import java.time.Duration
 
 @Component
 class FirecrawlAdapter(
@@ -36,8 +39,28 @@ class FirecrawlAdapter(
                     )
                 )
             )
-            .retrieve()
-            .bodyToMono(Map::class.java)
+            .exchangeToMono { clientResponse ->
+                val statusCode = clientResponse.statusCode().value()
+                if (clientResponse.statusCode().is2xxSuccessful) {
+                    clientResponse.bodyToMono(Map::class.java)
+                } else {
+                    clientResponse.bodyToMono(String::class.java)
+                        .defaultIfEmpty("")
+                        .flatMap { body ->
+                            log.error("Firecrawl HTTP 에러: url={}, status={}, body={}", url, statusCode, body)
+                            Mono.error(CrawlFailedException(statusCode, body))
+                        }
+                }
+            }
+            .retryWhen(
+                Retry.backoff(
+                    firecrawlProperties.maxRetries.toLong(),
+                    Duration.ofSeconds(firecrawlProperties.retryBackoffSeconds)
+                ).filter { it is CrawlFailedException && (it as CrawlFailedException).statusCode in 500..599 }
+                    .doBeforeRetry { signal ->
+                        log.warn("Firecrawl 재시도 #{}: url={}, cause={}", signal.totalRetries() + 1, url, signal.failure().message)
+                    }
+            )
             .block() ?: throw RuntimeException("Firecrawl returned empty response for: $url")
 
         val success = response["success"] as? Boolean ?: false
