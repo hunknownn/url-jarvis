@@ -1,0 +1,5 @@
+url-jarvis:
+  crawl:
+    debug:
+      save-markdown: true
+      output-dir: crawl-debug

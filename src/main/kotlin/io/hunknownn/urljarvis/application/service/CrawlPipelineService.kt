@@ -6,9 +6,12 @@ import io.hunknownn.urljarvis.application.port.out.persistence.UrlChunkRepositor
 import io.hunknownn.urljarvis.application.port.out.persistence.UrlRepository
 import io.hunknownn.urljarvis.domain.url.CrawlStatus
 import io.hunknownn.urljarvis.domain.url.UrlChunk
+import io.hunknownn.urljarvis.infrastructure.config.CrawlDebugProperties
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
 /**
@@ -24,7 +27,8 @@ class CrawlPipelineService(
     private val urlChunkRepository: UrlChunkRepository,
     private val webCrawler: WebCrawler,
     private val textChunkingService: TextChunkingService,
-    private val embeddingClient: EmbeddingClient
+    private val embeddingClient: EmbeddingClient,
+    private val crawlDebugProperties: CrawlDebugProperties
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -45,6 +49,11 @@ class CrawlPipelineService(
                     crawlResult = webCrawler.crawl(url.url)
                 }
                 log.info("[크롤링] {}ms - {} (markdown={}자)", crawlTime, url.url, crawlResult.markdown.length)
+
+                // 1-1. 디버그: 크롤링 마크다운 파일 저장
+                if (crawlDebugProperties.saveMarkdown) {
+                    saveMarkdownForDebug(urlId, url.url, crawlResult.markdown)
+                }
 
                 // 2. 메타데이터 업데이트
                 urlRepository.save(
@@ -102,5 +111,18 @@ class CrawlPipelineService(
             }
         }
         log.info("[파이프라인 총합] {}ms - {}", totalTime, url.url)
+    }
+
+    private fun saveMarkdownForDebug(urlId: Long, originalUrl: String, markdown: String) {
+        try {
+            val dir = Path.of(crawlDebugProperties.outputDir)
+            Files.createDirectories(dir)
+            val safeName = originalUrl.replace(Regex("[^a-zA-Z0-9가-힣]"), "_").take(80)
+            val file = dir.resolve("${urlId}_${safeName}.md")
+            Files.writeString(file, markdown)
+            log.info("[디버그] 마크다운 저장: {}", file)
+        } catch (e: Exception) {
+            log.warn("마크다운 디버그 저장 실패: {}", e.message)
+        }
     }
 }

@@ -42,3 +42,6 @@ out/
 ### Secret configs ###
 application-dev.yaml
 application-dev.yml
+
+### Debug output ###
+crawl-debug/
