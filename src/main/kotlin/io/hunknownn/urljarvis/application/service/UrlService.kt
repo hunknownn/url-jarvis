@@ -62,6 +62,9 @@ class UrlService(
     override fun recrawlUrl(userId: Long, urlId: Long): Url {
         val url = urlRepository.findByIdAndUserId(urlId, userId)
             ?: throw UrlNotFoundException(urlId)
+        if (url.status == CrawlStatus.CRAWLING) {
+            throw io.hunknownn.urljarvis.adapter.`in`.web.exception.UrlCrawlingInProgressException(urlId)
+        }
         urlChunkRepository.deleteByUrlId(url.id)
         urlRepository.updateStatus(url.id, CrawlStatus.PENDING)
         crawlEventPublisher.publishCrawlRequested(url.id)

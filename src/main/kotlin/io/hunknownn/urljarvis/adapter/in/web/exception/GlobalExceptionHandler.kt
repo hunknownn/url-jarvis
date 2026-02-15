@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 
 class UrlNotFoundException(val urlId: Long) : RuntimeException("URL not found: $urlId")
 class UrlDuplicateException(val existingUrlId: Long) : RuntimeException("이미 등록된 URL입니다 (id: $existingUrlId)")
+class UrlCrawlingInProgressException(val urlId: Long) : RuntimeException("현재 크롤링이 진행 중입니다 (id: $urlId)")
 class UnauthorizedException(message: String = "Unauthorized") : RuntimeException(message)
 
 @RestControllerAdvice
@@ -25,6 +26,11 @@ class GlobalExceptionHandler {
     fun handleUrlDuplicate(e: UrlDuplicateException): ResponseEntity<ApiResponse<Map<String, Long>>> =
         ResponseEntity.status(HttpStatus.CONFLICT)
             .body(ApiResponse(success = false, data = mapOf("existingUrlId" to e.existingUrlId), error = e.message))
+
+    @ExceptionHandler(UrlCrawlingInProgressException::class)
+    fun handleCrawlingInProgress(e: UrlCrawlingInProgressException): ResponseEntity<ApiResponse<Nothing>> =
+        ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiResponse.error(e.message ?: "크롤링 진행 중"))
 
     @ExceptionHandler(UnauthorizedException::class)
     fun handleUnauthorized(e: UnauthorizedException): ResponseEntity<ApiResponse<Nothing>> =
