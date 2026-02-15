@@ -8,6 +8,7 @@ import io.hunknownn.urljarvis.application.port.out.persistence.UrlChunkRepositor
 import io.hunknownn.urljarvis.domain.search.SearchResult
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import kotlin.system.measureTimeMillis
 
 /**
  * 시맨틱 검색 서비스.
@@ -24,17 +25,37 @@ class SearchService(
 
     override fun searchAll(userId: Long, query: String, topK: Int): SearchAnswer {
         log.info("전체 검색 시작: userId={}, query='{}', topK={}", userId, query, topK)
-        val queryEmbedding = embeddingClient.embed("query: $query")
-        val results = urlChunkRepository.searchByUserId(userId, queryEmbedding, topK)
-        log.info("벡터 검색 결과: {}건 (최고 유사도: {})", results.size, results.firstOrNull()?.similarity ?: 0.0)
+
+        val queryEmbedding: FloatArray
+        val embedTime = measureTimeMillis {
+            queryEmbedding = embeddingClient.embed("query: $query")
+        }
+        log.info("[임베딩] {}ms", embedTime)
+
+        val results: List<SearchResult>
+        val searchTime = measureTimeMillis {
+            results = urlChunkRepository.searchByUserId(userId, queryEmbedding, topK)
+        }
+        log.info("[벡터 검색] {}ms - {}건 (최고 유사도: {})", searchTime, results.size, results.firstOrNull()?.similarity ?: 0.0)
+
         return buildAnswer(query, results)
     }
 
     override fun searchByUrl(userId: Long, urlId: Long, query: String, topK: Int): SearchAnswer {
         log.info("URL 내 검색 시작: userId={}, urlId={}, query='{}', topK={}", userId, urlId, query, topK)
-        val queryEmbedding = embeddingClient.embed("query: $query")
-        val results = urlChunkRepository.searchByUrlId(urlId, queryEmbedding, topK)
-        log.info("벡터 검색 결과: {}건 (최고 유사도: {})", results.size, results.firstOrNull()?.similarity ?: 0.0)
+
+        val queryEmbedding: FloatArray
+        val embedTime = measureTimeMillis {
+            queryEmbedding = embeddingClient.embed("query: $query")
+        }
+        log.info("[임베딩] {}ms", embedTime)
+
+        val results: List<SearchResult>
+        val searchTime = measureTimeMillis {
+            results = urlChunkRepository.searchByUrlId(urlId, queryEmbedding, topK)
+        }
+        log.info("[벡터 검색] {}ms - {}건 (최고 유사도: {})", searchTime, results.size, results.firstOrNull()?.similarity ?: 0.0)
+
         return buildAnswer(query, results)
     }
 
@@ -51,8 +72,13 @@ class SearchService(
             "[출처 ${i + 1}: ${r.title ?: r.url}]\n${r.matchedChunkContent}"
         }.joinToString("\n\n")
 
-        val answer = llmClient.generate(query, context)
-        log.info("검색 완료: query='{}', sources={}건, answer={}자", query, results.size, answer.length)
+        val answer: String
+        val llmTime = measureTimeMillis {
+            answer = llmClient.generate(query, context)
+        }
+        log.info("[LLM] {}ms - answer={}자", llmTime, answer.length)
+        log.info("[검색 완료] query='{}', sources={}건", query, results.size)
+
         return SearchAnswer(answer = answer, sources = results)
     }
 }
