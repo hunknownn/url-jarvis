@@ -28,9 +28,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
 
-    // Security + OAuth2
+    // Security (OAuth는 WebClient로 직접 구현)
     implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")

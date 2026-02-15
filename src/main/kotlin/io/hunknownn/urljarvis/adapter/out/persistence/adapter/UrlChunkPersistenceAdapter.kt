@@ -9,6 +9,13 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
+/**
+ * pgvector 벡터 연산을 위해 JdbcTemplate + native SQL을 사용하는 어댑터.
+ *
+ * JPA는 vector 타입을 직접 매핑할 수 없으므로,
+ * 임베딩 저장/검색은 PGvector 라이브러리 + native query로 처리한다.
+ * <=> 연산자: pgvector의 코사인 거리 (1 - cosine_similarity)
+ */
 @Component
 class UrlChunkPersistenceAdapter(
     private val urlChunkJpaRepository: UrlChunkJpaRepository,

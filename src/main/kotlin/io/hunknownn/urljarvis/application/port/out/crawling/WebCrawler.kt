@@ -6,6 +6,7 @@ data class CrawlResult(
     val description: String?
 )
 
+/** URL 크롤링 Output Port. 구현체: FirecrawlAdapter */
 interface WebCrawler {
     fun crawl(url: String): CrawlResult
 }

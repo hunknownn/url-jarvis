@@ -8,6 +8,12 @@ import org.springframework.stereotype.Component
 import java.util.Date
 import javax.crypto.SecretKey
 
+/**
+ * JWT 토큰 생성/검증.
+ * - Access Token (1h): API 요청 인증
+ * - Refresh Token (14d): Access Token 갱신용
+ * - Payload의 subject에 userId를 저장한다.
+ */
 @Component
 class JwtTokenProvider(
     @Value("\${url-jarvis.jwt.secret}") private val secret: String,
